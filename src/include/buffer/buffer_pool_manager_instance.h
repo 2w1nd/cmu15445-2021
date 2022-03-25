@@ -96,6 +96,25 @@ class BufferPoolManagerInstance : public BufferPoolManager {
   bool DeletePgImp(page_id_t page_id) override;
 
   /**
+   * 从空闲列表（优先）或Replacer中找到干净页
+   * @return
+   */
+  frame_id_t FindFreshPage();
+
+  /**
+   * 刷新该页到磁盘
+   * @param page_id
+   */
+  void FlushPg(page_id_t page_id);
+
+  /**
+   * 找到该页在缓冲区对应的页号
+   * @param page_id
+   * @return
+   */
+  frame_id_t FindPage(page_id_t page_id);
+
+  /**
    * Flushes all the pages in the buffer pool to disk.
    */
   void FlushAllPgsImp() override;

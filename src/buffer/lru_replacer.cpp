@@ -14,9 +14,7 @@
 
 namespace bustub {
 
-LRUReplacer::LRUReplacer(size_t num_pages) {
-  pages_num = num_pages;
-}
+LRUReplacer::LRUReplacer(size_t num_pages) { pages_num_ = num_pages; }
 
 LRUReplacer::~LRUReplacer() {
   map_frames_.clear();
@@ -36,8 +34,8 @@ bool LRUReplacer::Victim(frame_id_t *frame_id) {
 
 void LRUReplacer::Pin(frame_id_t frame_id) {
   std::lock_guard<std::mutex> lock_guard(latch_);
-  if (!map_frames_.count(frame_id)) {
-    return ;
+  if (map_frames_.count(frame_id) == 0U) {
+    return;
   }
   auto p = map_frames_[frame_id];
   list_unpinned_.erase(p);
@@ -46,16 +44,15 @@ void LRUReplacer::Pin(frame_id_t frame_id) {
 
 void LRUReplacer::Unpin(frame_id_t frame_id) {
   std::lock_guard<std::mutex> lock_guard(latch_);
-  if (map_frames_.count(frame_id)) {
-    return ;
-  } else {
-    if (map_frames_.size() == pages_num) {
-      list_unpinned_.pop_back();
-      map_frames_.erase(frame_id);
-    }
-    list_unpinned_.push_front(frame_id);
-    map_frames_.emplace(frame_id, list_unpinned_.begin());
+  if (map_frames_.count(frame_id) != 0U) {
+    return;
   }
+  if (map_frames_.size() == pages_num_) {
+    list_unpinned_.pop_back();
+    map_frames_.erase(frame_id);
+  }
+  list_unpinned_.push_front(frame_id);
+  map_frames_.emplace(frame_id, list_unpinned_.begin());
 }
 
 size_t LRUReplacer::Size() { return map_frames_.size(); }

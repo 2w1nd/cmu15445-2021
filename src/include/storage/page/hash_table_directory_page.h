@@ -16,6 +16,7 @@
 #include <climits>
 #include <cstdlib>
 #include <string>
+#include <cmath>
 
 #include "storage/index/generic_key.h"
 #include "storage/page/hash_table_page_defs.h"
@@ -185,6 +186,14 @@ class HashTableDirectoryPage {
    * Prints the current directory
    */
   void PrintDirectory();
+
+  /**
+   * 进行2次方运算，这里要转换为uint32_t
+   * @param base
+   * @param power
+   * @return
+   */
+  uint32_t Pow(uint32_t base, uint32_t power);
 
  private:
   page_id_t page_id_;

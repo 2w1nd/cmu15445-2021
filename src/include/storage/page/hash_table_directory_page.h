@@ -14,9 +14,9 @@
 
 #include <cassert>
 #include <climits>
+#include <cmath>
 #include <cstdlib>
 #include <string>
-#include <cmath>
 
 #include "storage/index/generic_key.h"
 #include "storage/page/hash_table_page_defs.h"

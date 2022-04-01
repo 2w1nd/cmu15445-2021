@@ -142,7 +142,7 @@ class HashTableBucketPage {
    * @param bucket_idx
    * @return
    */
-  std::pair<int, int> GetLocation(uint32_t bucket_idx) const ;
+  std::pair<int, int> GetLocation(uint32_t bucket_idx) const;
 
   /**
    * 返回bit在array中bit位
@@ -152,14 +152,12 @@ class HashTableBucketPage {
    */
   char GetMask(int which, int bit);
 
-private:
+ private:
   //  For more on BUCKET_ARRAY_SIZE see storage/page/hash_table_page_defs.h
   char occupied_[(BUCKET_ARRAY_SIZE - 1) / 8 + 1];
   // 0 if tombstone/brand new (never occupied), 1 otherwise.
   char readable_[(BUCKET_ARRAY_SIZE - 1) / 8 + 1];
   MappingType array_[0];
-
-
 };
 
 }  // namespace bustub

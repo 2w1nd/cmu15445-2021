@@ -24,17 +24,17 @@
 #include "storage/table/tuple.h"
 
 namespace bustub {
-    struct HashJoinKey {
-        Value key_;
-        bool operator==(const HashJoinKey &other) const { return key_.CompareEquals(other.key_) == CmpBool::CmpTrue; }
-    };
+struct HashJoinKey {
+  Value key_;
+  bool operator==(const HashJoinKey &other) const { return key_.CompareEquals(other.key_) == CmpBool::CmpTrue; }
+};
 }  // namespace bustub
 
 namespace std {
-    template <>
-    struct hash<bustub::HashJoinKey> {
-        std::size_t operator()(const bustub::HashJoinKey &key) const { return bustub::HashUtil::HashValue(&key.key_); }
-    };
+template <>
+struct hash<bustub::HashJoinKey> {
+  std::size_t operator()(const bustub::HashJoinKey &key) const { return bustub::HashUtil::HashValue(&key.key_); }
+};
 }  // namespace std
 
 namespace bustub {

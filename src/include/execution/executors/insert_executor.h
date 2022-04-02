@@ -56,13 +56,13 @@ class InsertExecutor : public AbstractExecutor {
   /** @return The output schema for the insert */
   const Schema *GetOutputSchema() override { return plan_->OutputSchema(); };
 
-  void InsertIntoTableWithIndex(Tuple cur_tuple);
+  void InsertIntoTableWithIndex(Tuple *cur_tuple);
 
  private:
   /** The insert plan node to be executed*/
   const InsertPlanNode *plan_;
-  TableHeap *table_heap_;
   Catalog *catalog_;
+  TableHeap *table_heap_;
   TableInfo *table_info_;
   std::unique_ptr<AbstractExecutor> child_executor_;
 };

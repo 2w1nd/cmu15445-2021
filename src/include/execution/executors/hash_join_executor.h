@@ -75,7 +75,7 @@ class HashJoinExecutor : public AbstractExecutor {
   std::unique_ptr<AbstractExecutor> right_child_executor_;
   std::unordered_map<HashJoinKey, std::vector<Tuple>> map_;
   std::vector<Tuple> result_;
-  uint32_t now_id = 0;
+  uint32_t now_id_ = 0;
 };
 
 }  // namespace bustub

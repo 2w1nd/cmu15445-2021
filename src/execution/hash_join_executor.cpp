@@ -63,10 +63,10 @@ void HashJoinExecutor::Init() {
 }
 
 bool HashJoinExecutor::Next(Tuple *tuple, RID *rid) {
-  if (now_id < result_.size()) {
-    *tuple = result_[now_id];
+  if (now_id_ < result_.size()) {
+    *tuple = result_[now_id_];
     *rid = tuple->GetRid();
-    now_id++;
+    now_id_++;
     return true;
   }
   return false;

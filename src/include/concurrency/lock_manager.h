@@ -104,11 +104,20 @@ class LockManager {
    */
   bool Unlock(Transaction *txn, const RID &rid);
 
+  /**
+   * 将事务添加到锁队列中
+   * @param queue
+   * @param txn_id
+   * @param lock_mode
+   */
+  void insertTransIntoLockQueue(LockRequestQueue *queue, txn_id_t txn_id, LockMode lock_mode);
+
  private:
   std::mutex latch_;
 
   /** Lock table for lock requests. */
   std::unordered_map<RID, LockRequestQueue> lock_table_;
+
 };
 
 }  // namespace bustub

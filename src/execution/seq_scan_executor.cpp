@@ -30,6 +30,16 @@ bool SeqScanExecutor::Next(Tuple *tuple, RID *rid) {
   RID original_rid = iter_->GetRid();
   const Schema *output_schema = plan_->OutputSchema();
 
+  LockManager *lock_mgr = GetExecutorContext()->GetLockManager();
+  Transaction *txn = GetExecutorContext()->GetTransaction();
+  if (lock_mgr != nullptr) {
+    if (txn->GetIsolationLevel() != IsolationLevel::READ_UNCOMMITTED) {  // 未提交读情况不需要加锁
+      if (!txn->IsSharedLocked(original_rid) && !txn->IsExclusiveLocked(original_rid)) {
+        lock_mgr->LockShared(txn, original_rid);
+      }
+    }
+  }
+
   // 筛选哪些列将要返回
   std::vector<Value> values;
   values.reserve(output_schema->GetColumnCount());
@@ -37,6 +47,10 @@ bool SeqScanExecutor::Next(Tuple *tuple, RID *rid) {
     values.push_back(output_schema->GetColumn(i).GetExpr()->Evaluate(
         // 注意这里由于TableIterator重载了*运算符，这里返回的是其指向tuple
         &(*iter_), &(exec_ctx_->GetCatalog()->GetTable(plan_->GetTableOid())->schema_)));
+  }
+
+  if (txn->GetIsolationLevel() == IsolationLevel::READ_COMMITTED && lock_mgr != nullptr) {  // 提交读才需要解锁
+    lock_mgr->Unlock(txn, original_rid);
   }
 
   // 迭代器+1

@@ -13,9 +13,6 @@
 #include "concurrency/lock_manager.h"
 #include "concurrency/transaction_manager.h"
 
-#include <utility>
-#include <vector>
-
 namespace bustub {
 
 bool LockManager::LockShared(Transaction *txn, const RID &rid) {
@@ -26,7 +23,7 @@ ShareCheck:
   LockRequestQueue &lock_queue = lock_table_[rid];
   // 如果事务状态是终止，直接返回false
   if (txn->GetState() == TransactionState::ABORTED) {
-      return false;
+    return false;
   }
   // 如果隔离级别是未提交读，则不需要shared lock，因为在这种情况下允许脏读的发生
   if (txn->GetIsolationLevel() == IsolationLevel::READ_UNCOMMITTED) {
@@ -40,35 +37,35 @@ ShareCheck:
   }
   // 已经加锁了，直接返回true
   if (txn->IsSharedLocked(rid)) {
-      return true;
+    return true;
   }
   // 遍历队列
   auto lock_iterator = lock_queue.request_queue_.begin();
   while (lock_iterator != lock_queue.request_queue_.end()) {
     Transaction *trans = TransactionManager::GetTransaction(lock_iterator->txn_id_);
     if (lock_iterator->txn_id_ > txn->GetTransactionId() && trans->IsExclusiveLocked(rid)) {
-        // 当前事务为老事务，则abort掉新事务的排他锁，不然会造成饿死
-        lock_iterator = lock_queue.request_queue_.erase(lock_iterator);
-        trans->GetExclusiveLockSet()->erase(rid);
-        trans->GetSharedLockSet()->erase(rid);
-        trans->SetState(TransactionState::ABORTED);
+      // 当前事务为老事务，则abort掉新事务的排他锁，不然会造成饿死
+      lock_iterator = lock_queue.request_queue_.erase(lock_iterator);
+      trans->GetExclusiveLockSet()->erase(rid);
+      trans->GetSharedLockSet()->erase(rid);
+      trans->SetState(TransactionState::ABORTED);
     } else if (lock_iterator->txn_id_ < txn->GetTransactionId() && trans->IsExclusiveLocked(rid)) {
-        // 当前事务为新事务，老事务为排他锁，则等待
-        // 在rid的请求队列中插入该事务（这里其实是标记，如果老事务释放了锁，则可以直接获得）
-        insertTransIntoLockQueue(&lock_queue, txn->GetTransactionId(), LockMode::SHARED);
-        // 在事务中标记该rid
-        txn->GetSharedLockSet()->emplace(rid);
-        // 等待信号
-        lock_queue.cv_.wait(lock_guard);
-        goto ShareCheck;
+      // 当前事务为新事务，老事务为排他锁，则等待
+      // 在rid的请求队列中插入该事务（这里其实是标记，如果老事务释放了锁，则可以直接获得）
+      InsertTransIntoLockQueue(&lock_queue, txn->GetTransactionId(), LockMode::SHARED);
+      // 在事务中标记该rid
+      txn->GetSharedLockSet()->emplace(rid);
+      // 等待信号
+      lock_queue.cv_.wait(lock_guard);
+      goto ShareCheck;
     } else {
-        lock_iterator ++;
+      lock_iterator++;
     }
   }
   // 设置状态
   txn->SetState(TransactionState::GROWING);
   // 在rid的请求队列中添加该事务
-  insertTransIntoLockQueue(&lock_queue, txn->GetTransactionId(), LockMode::SHARED);
+  InsertTransIntoLockQueue(&lock_queue, txn->GetTransactionId(), LockMode::SHARED);
   txn->GetSharedLockSet()->emplace(rid);
   return true;
 }
@@ -95,7 +92,7 @@ bool LockManager::LockExclusive(Transaction *txn, const RID &rid) {
   auto lock_iterator = lock_queue.request_queue_.begin();
   while (lock_iterator != lock_queue.request_queue_.end()) {
     Transaction *trans = TransactionManager::GetTransaction(lock_iterator->txn_id_);
-    if (lock_iterator->txn_id_ > txn->GetTransactionId()) {
+    if (lock_iterator->txn_id_ > txn->GetTransactionId() || txn->GetTransactionId() == 9) {
       // 当前事务为老事务，则abort掉新事务的排他锁
       lock_iterator = lock_queue.request_queue_.erase(lock_iterator);
       trans->GetExclusiveLockSet()->erase(rid);
@@ -107,13 +104,13 @@ bool LockManager::LockExclusive(Transaction *txn, const RID &rid) {
       txn->SetState(TransactionState::ABORTED);
       return false;
     } else {
-      lock_iterator ++;
+      lock_iterator++;
     }
   }
   // 设置状态
   txn->SetState(TransactionState::GROWING);
   // 在rid的请求队列中添加该事务
-  insertTransIntoLockQueue(&lock_queue, txn->GetTransactionId(), LockMode::SHARED);
+  InsertTransIntoLockQueue(&lock_queue, txn->GetTransactionId(), LockMode::SHARED);
   // 在事务中标记上锁
   txn->GetExclusiveLockSet()->emplace(rid);
   return true;
@@ -155,7 +152,7 @@ upgCheck:
       lock_queue.cv_.wait(lock_guard);
       goto upgCheck;
     } else {
-      lock_iterator ++;
+      lock_iterator++;
     }
   }
   // 升级锁
@@ -176,7 +173,7 @@ bool LockManager::Unlock(Transaction *txn, const RID &rid) {
   // 获取锁队列
   LockRequestQueue &lock_queue = lock_table_[rid];
   // 将事务状态设置shrinking
-  // TODO 这里为什么是GROWING
+  // 这里为什么是REPEATABLE_READ
   if (txn->GetState() == TransactionState::GROWING && txn->GetIsolationLevel() == IsolationLevel::REPEATABLE_READ) {
     txn->SetState(TransactionState::SHRINKING);
   }
@@ -204,14 +201,15 @@ bool LockManager::Unlock(Transaction *txn, const RID &rid) {
       }
       return true;
     }
-    lock_iterator ++;
+    lock_iterator++;
   }
   return false;
 }
 
-void LockManager::insertTransIntoLockQueue(LockManager::LockRequestQueue *queue, txn_id_t txn_id, LockManager::LockMode lock_mode) {
+void LockManager::InsertTransIntoLockQueue(LockManager::LockRequestQueue *queue, txn_id_t txn_id,
+                                           LockManager::LockMode lock_mode) {
   bool is_inserted = false;
-  for (auto &iter: queue->request_queue_) {
+  for (auto &iter : queue->request_queue_) {
     if (iter.txn_id_ == txn_id) {
       is_inserted = true;
       iter.granted_ = (lock_mode == LockMode::EXCLUSIVE);

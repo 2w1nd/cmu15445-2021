@@ -28,6 +28,9 @@ void DeleteExecutor::Init() {
 bool DeleteExecutor::Next([[maybe_unused]] Tuple *tuple, RID *rid) {
   Tuple cur_tuple;
   RID cur_rid;
+
+  LockManager *lock_mgr = GetExecutorContext()->GetLockManager();
+  Transaction *txn = GetExecutorContext()->GetTransaction();
   while (true) {
     try {
       if (!child_executor_->Next(&cur_tuple, &cur_rid)) {
@@ -35,7 +38,15 @@ bool DeleteExecutor::Next([[maybe_unused]] Tuple *tuple, RID *rid) {
       }
     } catch (Exception &e) {
       throw Exception(ExceptionType::UNKNOWN_TYPE, "deleteExecutor: child execute error");
-      return false;
+    }
+
+    // 加锁
+    if (lock_mgr != nullptr) {
+      if (txn->IsSharedLocked(cur_rid)) {
+        lock_mgr->LockUpgrade(txn, cur_rid);
+      } else if (txn->IsExclusiveLocked(cur_rid)) {
+        lock_mgr->LockExclusive(txn, cur_rid);
+      }
     }
 
     // 根据子查询器的结果来调用TableHeap标记删除状态
@@ -48,6 +59,13 @@ bool DeleteExecutor::Next([[maybe_unused]] Tuple *tuple, RID *rid) {
       index_info->DeleteEntry(
           cur_tuple.KeyFromTuple(table_info_->schema_, *index_info->GetKeySchema(), index_info->GetKeyAttrs()), cur_rid,
           exec_ctx_->GetTransaction());
+      // 在事务中记录下变更
+      txn->GetIndexWriteSet()->emplace_back(IndexWriteRecord(cur_rid, table_info_->oid_, WType::DELETE, cur_tuple,
+                                                             index->index_oid_, exec_ctx_->GetCatalog()));
+    }
+
+    if (txn->GetIsolationLevel() == IsolationLevel::READ_COMMITTED && lock_mgr != nullptr) {  // 提交读才需要解锁
+      lock_mgr->Unlock(txn, cur_rid);
     }
   }
 

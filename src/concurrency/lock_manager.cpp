@@ -21,6 +21,7 @@ bool LockManager::LockShared(Transaction *txn, const RID &rid) {
 ShareCheck:
   // 获取锁队列
   LockRequestQueue &lock_queue = lock_table_[rid];
+
   // 如果事务状态是终止，直接返回false
   if (txn->GetState() == TransactionState::ABORTED) {
     return false;

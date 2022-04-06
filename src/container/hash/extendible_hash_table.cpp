@@ -276,8 +276,7 @@ void HASH_TABLE_TYPE::Merge(Transaction *transaction, const KeyType &key, const 
             i, dir_page_data->GetBucketPageId(split_bucket_idx));  // 将分割bucket的pageID赋给原bucket
         auto new_bucket_page_id = dir_page_data->GetBucketPageId(i);
 
-        for (uint32_t j = 0; j < dir_page_data->Size();
-             ++j) {  // 遍历找到原pageID和分割pageID对应的bucketIdx，将他们的pageID都设置为分割pageID
+        for (uint32_t j = 0; j < dir_page_data->Size(); ++j) {  // 遍历找到原pageID和分割pageID对应的bucketIdx，将他们的pageID都设置为分割pageID
           if (j == i || j == split_bucket_idx) {
             continue;
           }

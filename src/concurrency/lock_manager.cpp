@@ -93,7 +93,7 @@ bool LockManager::LockExclusive(Transaction *txn, const RID &rid) {
   auto lock_iterator = lock_queue.request_queue_.begin();
   while (lock_iterator != lock_queue.request_queue_.end()) {
     Transaction *trans = TransactionManager::GetTransaction(lock_iterator->txn_id_);
-    if (lock_iterator->txn_id_ > txn->GetTransactionId() || txn->GetTransactionId() == 9) {
+    if (lock_iterator->txn_id_ > txn->GetTransactionId()/* || txn->GetTransactionId() == 9*/) {
       // 当前事务为老事务，则abort掉新事务的排他锁
       lock_iterator = lock_queue.request_queue_.erase(lock_iterator);
       trans->GetExclusiveLockSet()->erase(rid);
@@ -111,7 +111,7 @@ bool LockManager::LockExclusive(Transaction *txn, const RID &rid) {
   // 设置状态
   txn->SetState(TransactionState::GROWING);
   // 在rid的请求队列中添加该事务
-  InsertTransIntoLockQueue(&lock_queue, txn->GetTransactionId(), LockMode::SHARED);
+  InsertTransIntoLockQueue(&lock_queue, txn->GetTransactionId(), LockMode::EXCLUSIVE);
   // 在事务中标记上锁
   txn->GetExclusiveLockSet()->emplace(rid);
   return true;
